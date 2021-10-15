@@ -1,7 +1,7 @@
-module FSM2 (clk, reset, sync_clk, flash_mem_read, flash_mem_readdatavalid, reset_address, inc_address);
+module FSM2 (clk, reset, sync_clk, flash_mem_read, flash_mem_readdatavalid, reset_address, inc_address, lower);
     input clk, reset, sync_clk, flash_mem_readdatavalid;
 
-    output flash_mem_read, reset_address, inc_address;
+    output flash_mem_read, reset_address, inc_address, lower;
 
     reg [2:0] state; //TODO ensure glitch free
 
@@ -32,5 +32,6 @@ module FSM2 (clk, reset, sync_clk, flash_mem_read, flash_mem_readdatavalid, rese
         reset_address = ~(state == INIT);
         inc_address = (state == INC);
         flash_mem_read = (state == READ);
+        lower = (state == PLAYL);
     end
 endmodule

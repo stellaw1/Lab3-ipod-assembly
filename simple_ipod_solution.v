@@ -230,9 +230,8 @@ wire Sample_Clk_Signal;
 // Variables
 wire Clock_22kHz, Sync_Clock_22kHz;
 
-wire play, forward, reset_address, inc_address;
-wire [15:0] audio_data_out;
-wire [7:0] audio_data_temp;
+wire play, forward, reset_address, inc_address, lower;
+wire [7:0] audio_data;
 
 wire            flash_mem_read;
 wire            flash_mem_waitrequest;
@@ -296,13 +295,14 @@ Audio_FSM
     .flash_mem_read(flash_mem_read), 
     .flash_mem_readdatavalid(flash_mem_readdatavalid), 
     .reset_address(reset_address), 
-    .inc_address(inc_address)
+    .inc_address(inc_address),
+    .lower(lower)
 );
 
 
 DFF_Enable
 #(32)
-Audio_data_register
+read_data_register
 (
     .D(flash_mem_readdata), 
     .clk(CLOCK_50), 
@@ -310,6 +310,8 @@ Audio_data_register
     .enable(flash_mem_readdatavalid), 
     .Q(readdata)
 );
+
+assign audio_data = lower ? readdata[15:8] : readdata[31:24];
 
 assign flash_mem_byteenable = 4'b1111;
 
@@ -327,7 +329,6 @@ flash flash_inst (
     .flash_mem_byteenable    (flash_mem_byteenable)
 );
 
-wire [7:0] audio_data = readdata[15:8];
 
 
 // assign Sample_Clk_Signal = Clock_1KHz;
