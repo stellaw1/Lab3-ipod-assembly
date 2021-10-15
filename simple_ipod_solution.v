@@ -262,38 +262,22 @@ Address_FSM
 Address_Counter
 (
     .clk(inc_address), 
-    .reset(1), //reset_address
-    .forward(1),
-    .play(1),
+    .reset(1), //
+    .forward(forward),
+    .play(play),
     .address(flash_mem_address)
 );
 
 
-// FSM
-// Audio_FSM
-// (
-//     .clk(CLOCK_50),
-//     .sync_clk(Sync_Clock_22kHz), 
-//     .reset(1'b1),
-//     .play(1),
-//     .flash_mem_read(flash_mem_read), 
-//     .flash_mem_waitrequest(flash_mem_waitrequest), 
-//     .readdata(readdata), 
-//     .flash_mem_readdatavalid(flash_mem_readdatavalid), 
-//     .audio_data_out(audio_data_temp),
-//     .reset_address(reset_address),
-//     .inc_address(inc_address)
-// );
-
-
-FSM2
+FSM
 Audio_FSM
 (
     .clk(CLOCK_50), 
     .reset(1),
+    .play(play),
     .sync_clk(Sync_Clock_22kHz), 
     .flash_mem_read(flash_mem_read), 
-    .flash_mem_readdatavalid(flash_mem_readdatavalid), 
+    .flash_mem_readdatavalid(flash_mem_readdatavalid),
     .reset_address(reset_address), 
     .inc_address(inc_address),
     .lower(lower)

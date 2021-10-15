@@ -1,9 +1,7 @@
-module FSM (clk, sync_clk, reset, play, flash_mem_read, flash_mem_waitrequest, readdata, flash_mem_readdatavalid, audio_data_out, reset_address, inc_address);
-    input clk, sync_clk, reset, play;
-    input [31:0] readdata;
-    input flash_mem_readdatavalid, flash_mem_waitrequest;
-    output flash_mem_read, reset_address, inc_address;
-    output [7:0] audio_data_out;
+module FSM (clk, reset, play, sync_clk, flash_mem_read, flash_mem_readdatavalid, reset_address, inc_address, lower);
+    input clk, reset, play, sync_clk, flash_mem_readdatavalid;
+
+    output flash_mem_read, reset_address, inc_address, lower;
 
     reg [2:0] state; //TODO ensure glitch free
 
@@ -18,37 +16,31 @@ module FSM (clk, sync_clk, reset, play, flash_mem_read, flash_mem_waitrequest, r
     always @(posedge clk, negedge reset) begin
         if (~reset) state <= INIT;
         else begin
-            case(state) 
+            case (state)
                 INIT: if (play) state <= READ;
-                        else state <= INIT;
+                    else state <= INIT;
                 INC: state <= READ;
-                READ: if (play & ~flash_mem_waitrequest & flash_mem_readdatavalid) state <= PLAYL;
-                        else state <= READ;
-                PLAYL: begin
-                        if (~play) state <= PAUSEL;
-                        else if (sync_clk) state <= PLAYR;
-                        else state <= PLAYL;
-                    end
+                READ: if (flash_mem_readdatavalid) state <= PLAYL;
+                    else state <= READ;
+                PLAYL: if (~play) state <= PAUSEL;
+                    else if (sync_clk) state <= PLAYR;
+                    else state <= PLAYL;
                 PAUSEL: if (play) state <= PLAYR;
-                        else state <= PAUSEL;
-                PLAYR: begin
-                        if (~play) state <= PAUSER;
-                        else if (sync_clk) state <= INC;
-                        else state <= PLAYR;
-                    end
+                    else state <= PAUSEL;
+                PLAYR: if (~play) state <= PAUSER;
+                    else if (sync_clk) state <= INC;
+                    else state <= PLAYR;
                 PAUSER: if (play) state <= INC;
-                        else state <= PAUSER;
+                    else state <= PAUSER;
                 default: state <= INIT;
             endcase
         end
-    end
+    end 
 
     always @(*) begin
         reset_address = ~(state == INIT);
         inc_address = (state == INC);
         flash_mem_read = (state == READ);
-        // audio_data_out = ( {8{(state == PLAYL)}} & readdata[15:8] ) | 
-        //                 ( {8{(state == PLAYR)}} & readdata[31:24] );
+        lower = (state == PLAYL);
     end
-
 endmodule
