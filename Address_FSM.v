@@ -1,18 +1,19 @@
-module Address_FSM (clk, Reset, address);
-    input clk;
-	input Reset;
-	output[31:0] address;
+module Address_FSM (clk, sync_clk, reset, forward, play, address);
+    input clk, sync_clk, reset, forward, play;
+	output [22:0] address;
 
-	reg [31:0] address = 0;
+	reg [22:0] address = 0;
 
-	always @(posedge clk, negedge Reset) begin
-		if (~Reset)
+	always @(posedge clk, negedge reset) begin
+		if (~reset) 
 			address <= 0;
-
-		else if (address >= 32'h7FFFF) //TODO what to do when I reach end of file
-			address <= 0;
-
-		else
-			address <= address + 1'b1;
+		else if (play & sync_clk) begin
+			if (forward)
+				if (address >= 23'h7FFFF) address <= 0; //restart song when end of file is reached
+				else address <= address + 1'b1;
+			else 
+				if (address <= 0) address <= 23'h7FFFF;
+				else address <= address - 1'b1;
+		end
 	end
 endmodule

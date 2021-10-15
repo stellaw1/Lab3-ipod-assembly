@@ -217,7 +217,7 @@ parameter character_space=8'h20;           //' '
 parameter character_exclaim=8'h21;          //'!'
 
 
-wire Clock_1KHz, Clock_1Hz, Clock_22kHz, Sync_Clock_22kHz;
+wire Clock_1KHz, Clock_1Hz;
 wire Sample_Clk_Signal;
 
 //=======================================================================================================================
@@ -225,6 +225,22 @@ wire Sample_Clk_Signal;
 // Insert your code for Lab2 here!
 //
 //
+
+
+// Variables
+wire Clock_22kHz, Sync_Clock_22kHz;
+
+wire play, forward, reset_address, inc_address;
+wire [15:0] audio_data_out;
+wire [7:0] audio_data_temp;
+
+wire            flash_mem_read;
+wire            flash_mem_waitrequest;
+wire    [22:0]  flash_mem_address;
+wire    [31:0]  flash_mem_readdata, readdata;
+wire            flash_mem_readdatavalid;
+wire    [3:0]   flash_mem_byteenable;
+
 
 Gen_Clock_Divider
 Freq_Divider
@@ -236,30 +252,66 @@ Freq_Divider
 );
 
 Synchronizer
-Synch_Clock
+Sync_Clock
 (
-    .async_sig(Clock_22kHz),
-    .outclk(CLOCK_50),
-    .out_sync_sig(flash_mem_read)
+    .async_clk(Clock_22kHz),
+    .clk(CLOCK_50),
+    .out_sync_clk(Sync_Clock_22kHz)
 );
 
 Address_FSM
 Address_Counter
 (
-
+    .clk(CLOCK_50), 
+    .sync_clk(Sync_Clock_22kHz),
+    .reset(1), //reset_address
+    .forward(1),
+    .play(1),
+    .address(flash_mem_address)
 );
 
-FSM
+
+// FSM
+// Audio_FSM
+// (
+//     .clk(CLOCK_50),
+//     .sync_clk(Sync_Clock_22kHz), 
+//     .reset(1'b1),
+//     .play(1),
+//     .flash_mem_read(flash_mem_read), 
+//     .flash_mem_waitrequest(flash_mem_waitrequest), 
+//     .readdata(readdata), 
+//     .flash_mem_readdatavalid(flash_mem_readdatavalid), 
+//     .audio_data_out(audio_data_temp),
+//     .reset_address(reset_address),
+//     .inc_address(inc_address)
+// );
 
 
+// FSM2
+// Audio_FSM
+// (
+//     .clk(CLOCK_50), 
+//     .sync_clk(Sync_Clock_22kHz), 
+//     .flash_mem_read(flash_mem_read), 
+//     .flash_mem_readdatavalid(flash_mem_readdatavalid), 
+//     .reset_address(reset_address), 
+//     .inc_address(inc_address)
+// );
 
-wire            flash_mem_read;
-wire            flash_mem_waitrequest;
-wire    [22:0]  flash_mem_address;
-wire    [31:0]  flash_mem_readdata;
-wire            flash_mem_readdatavalid;
-wire    [3:0]   flash_mem_byteenable;
 
+DFF_Enable
+#(32)
+Audio_data_register
+(
+    .D(flash_mem_readdata), 
+    .clk(CLOCK_50), 
+    .reset(0), 
+    .enable(flash_mem_readdatavalid), 
+    .Q(readdata)
+);
+
+assign flash_mem_byteenable = 4'b1111;
 
 flash flash_inst (
     .clk_clk                 (CLK_50M),
@@ -267,7 +319,7 @@ flash flash_inst (
     .flash_mem_write         (1'b0),
     .flash_mem_burstcount    (1'b1),
     .flash_mem_waitrequest   (flash_mem_waitrequest),
-    .flash_mem_read          (flash_mem_read),
+    .flash_mem_read          (Sync_Clock_22kHz),
     .flash_mem_address       (flash_mem_address),
     .flash_mem_writedata     (),
     .flash_mem_readdata      (flash_mem_readdata),
@@ -275,12 +327,13 @@ flash flash_inst (
     .flash_mem_byteenable    (flash_mem_byteenable)
 );
 
+wire [7:0] audio_data = readdata[15:8];
 
-assign Sample_Clk_Signal = Clock_1KHz;
 
+// assign Sample_Clk_Signal = Clock_1KHz;
 //Audio Generation Signal
 //Note that the audio needs signed data - so convert 1 bit to 8 bits signed
-wire [7:0] audio_data = {~Sample_Clk_Signal,{7{Sample_Clk_Signal}}}; //generate signed sample audio signal
+// wire [7:0] audio_data = {~Sample_Clk_Signal,{7{Sample_Clk_Signal}}}; //generate signed sample audio signal
 
 
 
@@ -313,7 +366,7 @@ wire [7:0] kbd_received_ascii_code, kbd_scan_code;
 Kbd_ctrl Kbd_Controller(
 .kbd_clk(ps2c),
 .kbd_data(ps2d),
- .clk(CLK_50M),
+.clk(CLK_50M),
 .scan_code(kbd_scan_code),
 .reset_kbd_reg(~reset_kbd_data),
 .data_ready(kbd_data_ready)
@@ -325,40 +378,55 @@ key2ascii kbd2ascii(
 .clk(conv_now_ignore_timing)
 );
 
+// my code ---
+always @(kbd_scan_code) begin
+    if (kbd_scan_code == 8'h24) //E
+        play = 1;
+    if (kbd_scan_code == 8'h23) // D
+        play = 0;
+    if (kbd_scan_code == 8'h2b) // F
+        forward = 1;
+    if (kbd_scan_code == 8'h32) // B
+        forward = 0;
+end
+//------------
+
 parameter scope_info_bytes = 16;
 parameter scope_info_bits_per_byte = 8;
 
 wire [15:0] write_kbd_debug;
 
 wire  [scope_info_bits_per_byte-1:0] scope_info0, scope_info1, scope_info2,
-     scope_info3, scope_info4, scope_info5, scope_info6, scope_info7, scope_info8,
-     scope_info9, scope_info10, scope_info11, scope_info12, scope_info13,
-     scope_info14, scope_info15;
+    scope_info3, scope_info4, scope_info5, scope_info6, scope_info7, scope_info8,
+    scope_info9, scope_info10, scope_info11, scope_info12, scope_info13,
+    scope_info14, scope_info15;
 
 Write_Kbd_To_Scope_LCD Write_Kbd_To_LCD1
 (.kbd_ascii_data(kbd_received_ascii_code),
-              .kbd_ready(kbd_data_ready), .reset_kbd_data(reset_kbd_data),
-                     .sm_clk(CLK_50M), .reset(1'b1),
-                     .finish(Kbd_to_LCD_finish),
-                     .scope_info0(scope_info0),
-                     .scope_info1(scope_info1),
-                     .scope_info2(scope_info2),
-                     .scope_info3(scope_info3),
-                     .scope_info4(scope_info4),
-                     .scope_info5(scope_info5),
-                     .scope_info6(scope_info6),
-                     .scope_info7(scope_info7),
-                     .scope_info8(scope_info8),
-                     .scope_info9(scope_info9),
-                     .scope_info10(scope_info10),
-                     .scope_info11(scope_info11),
-                     .scope_info12(scope_info12),
-                     .scope_info13(scope_info13),
-                     .scope_info14(scope_info14),
-                     .scope_info15(scope_info15),
-                     .debug(write_kbd_debug),
-                     .convert_now(conv_now_ignore_timing)
-    );
+.kbd_ready(kbd_data_ready), 
+.reset_kbd_data(reset_kbd_data),
+.sm_clk(CLK_50M), 
+.reset(1'b1),
+.finish(Kbd_to_LCD_finish),
+.scope_info0(scope_info0),
+.scope_info1(scope_info1),
+.scope_info2(scope_info2),
+.scope_info3(scope_info3),
+.scope_info4(scope_info4),
+.scope_info5(scope_info5),
+.scope_info6(scope_info6),
+.scope_info7(scope_info7),
+.scope_info8(scope_info8),
+.scope_info9(scope_info9),
+.scope_info10(scope_info10),
+.scope_info11(scope_info11),
+.scope_info12(scope_info12),
+.scope_info13(scope_info13),
+.scope_info14(scope_info14),
+.scope_info15(scope_info15),
+.debug(write_kbd_debug),
+.convert_now(conv_now_ignore_timing)
+);
 
 //=====================================================================================
 //
@@ -505,25 +573,25 @@ parameter num_1KHZ_clocks_between_updown_events = 1000/num_updown_events_per_sec
 reg [15:0] updown_counter = 0;
 always @(posedge Clock_1KHz)
 begin
-      if (updown_counter >= num_1KHZ_clocks_between_updown_events)
-      begin
-            if (speed_up_raw)
-            begin
-                  speed_up_event_trigger <= 1;
-            end
+    if (updown_counter >= num_1KHZ_clocks_between_updown_events)
+    begin
+        if (speed_up_raw)
+        begin
+            speed_up_event_trigger <= 1;
+        end
 
-            if (speed_down_raw)
-            begin
-                  speed_down_event_trigger <= 1;
-            end
-            updown_counter <= 0;
-      end
-      else
-      begin
-           updown_counter <= updown_counter + 1;
-           speed_up_event_trigger <=0;
-           speed_down_event_trigger <= 0;
-      end
+        if (speed_down_raw)
+        begin
+            speed_down_event_trigger <= 1;
+        end
+        updown_counter <= 0;
+    end
+    else
+    begin
+        updown_counter <= updown_counter + 1;
+        speed_up_event_trigger <=0;
+        speed_down_event_trigger <= 0;
+    end
 end
 
 wire speed_up_event_trigger;
@@ -532,22 +600,22 @@ wire speed_down_event_trigger;
 async_trap_and_reset_gen_1_pulse
 make_speedup_pulse
 (
- .async_sig(speed_up_event_trigger),
- .outclk(CLK_50M),
- .out_sync_sig(speed_up_event),
- .auto_reset(1'b1),
- .reset(1'b1)
- );
+    .async_sig(speed_up_event_trigger),
+    .outclk(CLK_50M),
+    .out_sync_sig(speed_up_event),
+    .auto_reset(1'b1),
+    .reset(1'b1)
+);
 
 async_trap_and_reset_gen_1_pulse
 make_speedown_pulse
 (
- .async_sig(speed_down_event_trigger),
- .outclk(CLK_50M),
- .out_sync_sig(speed_down_event),
- .auto_reset(1'b1),
- .reset(1'b1)
- );
+    .async_sig(speed_down_event_trigger),
+    .outclk(CLK_50M),
+    .out_sync_sig(speed_down_event),
+    .auto_reset(1'b1),
+    .reset(1'b1)
+);
 
 
 wire speed_reset_event;

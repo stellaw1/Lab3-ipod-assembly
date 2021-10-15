@@ -1,25 +1,28 @@
-module Synchronizer();
-    input async_sig;
-    input outclk;
-    output out_sync_sig;
+module Synchronizer(async_clk, clk, out_sync_clk);
+    input async_clk;
+    input clk;
+    output out_sync_clk;
 
-    wire q1, q2, q3;
+    wire auto_reset, q1, q2, q3, q4;
 
-    FDC FDC1(.D(out_sync_sig), .C(~outclk), .CLR(1'b0), .Q(q1));
-    FDC FDC2(.D(1'b1), .C(async_sig), .CLR(q1), .Q(q2));
-    FDC FDC3(.D(q2), .C(outclk), .CLR(1'b0), .Q(q3));
-    FDC FDC4(.D(q3), .C(outclk), .CLR(1'b0), .Q(out_sync_sig));
+    FDC FDC1(.D(1),     .clk(async_clk),    .reset(auto_reset),   .Q(q1));
+    FDC FDC2(.D(q1),    .clk(clk),          .reset(0),   .Q(q2));
+    FDC FDC3(.D(q2),    .clk(clk),          .reset(0),   .Q(q3));
+    FDC FDC4(.D(q3),    .clk(clk),          .reset(0),   .Q(q4));
+
+    assign auto_reset = q3 & ~async_clk;
+    assign out_sync_clk = ~q4 & q3;
 
 endmodule
 
-module FDC(D, C, CLR, Q);
-    input D;
-    input C;
-    input CLR;
+module FDC(D, clk, reset, Q);
+    input D, clk, reset;
     output Q;
 
-    always @(posedge C, posedge CLR) begin
-        if (CLR)
+    reg Q;
+
+    always @(posedge clk, posedge reset) begin
+        if (reset)
             Q <= 0;
         else
             Q <= D;
