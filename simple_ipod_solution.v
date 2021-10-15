@@ -262,8 +262,7 @@ Sync_Clock
 Address_FSM
 Address_Counter
 (
-    .clk(CLOCK_50), 
-    .sync_clk(Sync_Clock_22kHz),
+    .clk(inc_address), 
     .reset(1), //reset_address
     .forward(1),
     .play(1),
@@ -288,16 +287,17 @@ Address_Counter
 // );
 
 
-// FSM2
-// Audio_FSM
-// (
-//     .clk(CLOCK_50), 
-//     .sync_clk(Sync_Clock_22kHz), 
-//     .flash_mem_read(flash_mem_read), 
-//     .flash_mem_readdatavalid(flash_mem_readdatavalid), 
-//     .reset_address(reset_address), 
-//     .inc_address(inc_address)
-// );
+FSM2
+Audio_FSM
+(
+    .clk(CLOCK_50), 
+    .reset(1),
+    .sync_clk(Sync_Clock_22kHz), 
+    .flash_mem_read(flash_mem_read), 
+    .flash_mem_readdatavalid(flash_mem_readdatavalid), 
+    .reset_address(reset_address), 
+    .inc_address(inc_address)
+);
 
 
 DFF_Enable
@@ -319,7 +319,7 @@ flash flash_inst (
     .flash_mem_write         (1'b0),
     .flash_mem_burstcount    (1'b1),
     .flash_mem_waitrequest   (flash_mem_waitrequest),
-    .flash_mem_read          (Sync_Clock_22kHz),
+    .flash_mem_read          (flash_mem_read),
     .flash_mem_address       (flash_mem_address),
     .flash_mem_writedata     (),
     .flash_mem_readdata      (flash_mem_readdata),

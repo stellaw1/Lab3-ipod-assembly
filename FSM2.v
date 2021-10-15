@@ -9,6 +9,7 @@ module FSM2 (clk, reset, sync_clk, flash_mem_read, flash_mem_readdatavalid, rese
     parameter [2:0] INC = 3'b001;
     parameter [2:0] READ = 3'b011;
     parameter [2:0] PLAYL = 3'b010;
+    parameter [2:0] PLAYR = 3'b100;
 
     always @(posedge clk, negedge reset) begin
         if (~reset) state <= INIT;
@@ -18,8 +19,10 @@ module FSM2 (clk, reset, sync_clk, flash_mem_read, flash_mem_readdatavalid, rese
                 INC: state <= READ;
                 READ: if (flash_mem_readdatavalid) state <= PLAYL;
                     else state <= READ;
-                PLAYL: if (sync_clk) state <= INC;
+                PLAYL: if (sync_clk) state <= PLAYR;
                     else state <= PLAYL;
+                PLAYR: if (sync_clk) state <= INC;
+                    else state <= PLAYR;
                 default: state <= INIT;
             endcase
         end
