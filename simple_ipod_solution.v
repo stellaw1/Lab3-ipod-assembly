@@ -230,7 +230,10 @@ wire Sample_Clk_Signal;
 // Variables
 wire Clock_22kHz, Sync_Clock_22kHz;
 
-wire play, forward, reset_address, inc_address, lower;
+reg play = 0;
+reg forward = 1; 
+
+wire reset_address, inc_address, lower;
 wire [7:0] audio_data;
 
 wire            flash_mem_read;
@@ -251,7 +254,7 @@ Freq_Divider
 );
 
 Synchronizer
-Sync_Clock
+Sync_Clock_Detector
 (
     .async_clk(Clock_22kHz),
     .clk(CLOCK_50),
@@ -278,6 +281,7 @@ Audio_FSM
     .sync_clk(Sync_Clock_22kHz), 
     .flash_mem_read(flash_mem_read), 
     .flash_mem_readdatavalid(flash_mem_readdatavalid),
+    .flash_mem_waitrequest(flash_mem_waitrequest),
     .reset_address(reset_address), 
     .inc_address(inc_address),
     .lower(lower)
