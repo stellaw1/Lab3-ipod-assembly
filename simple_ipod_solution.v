@@ -232,6 +232,7 @@ wire Clock_22kHz, Sync_Clock_22kHz;
 
 reg play;
 reg forward = 1; 
+reg [31:0] div_clk_count = 32'h266;
 
 wire reset_address, inc_address, lower;
 wire [7:0] audio_data;
@@ -249,7 +250,7 @@ Freq_Divider
 (
     .inclk(TD_CLK27),
     .outclk(Clock_22kHz),
-    .div_clk_count(614),
+    .div_clk_count(div_clk_count),
     .Reset(1'b1)
 );
 
@@ -628,6 +629,19 @@ speed_reg_control_inst
 .reset_event(speed_reset_event),
 .speed_control_val(speed_control_val)
 );
+
+
+// speed clock divider count DFF ---
+always @(posedge CLK_50M) begin
+    if (speed_reset_event)
+        div_clk_count <= 32'h266;
+    if (speed_up_event)
+        div_clk_count <= div_clk_count - 1;
+    if (speed_down_event)
+        div_clk_count <= div_clk_count + 1;
+end
+//-----------------------------
+
 
 logic [15:0] scope_sampling_clock_count;
 parameter [15:0] default_scope_sampling_clock_count = 12499; //2KHz
