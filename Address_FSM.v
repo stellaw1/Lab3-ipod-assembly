@@ -7,8 +7,8 @@ module Address_FSM (clk, reset, forward, play, address);
 	parameter [22:0] min_address = 0;
 	parameter [22:0] max_address = 23'h7FFFF;
 
-	always @(posedge clk, negedge reset) begin
-		if (~reset) 
+	always @(posedge clk, posedge reset) begin
+		if (reset) 
 			address <= min_address;
 		else if (play) begin
 			if (forward)

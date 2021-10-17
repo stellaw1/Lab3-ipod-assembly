@@ -232,9 +232,10 @@ wire Clock_22kHz, Sync_Clock_22kHz;
 
 reg play;
 reg forward = 1; 
+reg replay = 0;
 reg [31:0] div_clk_count = 32'h266;
 
-wire reset_address, inc_address, lower;
+wire reset, inc_address, lower;
 wire [7:0] audio_data;
 
 wire            flash_mem_read;
@@ -262,11 +263,19 @@ Sync_Clock_Detector
     .out_sync_clk(Sync_Clock_22kHz)
 );
 
+Synchronizer
+Sync_Replay_Detector
+(
+    .async_clk(replay),
+    .clk(CLOCK_50),
+    .out_sync_clk(reset)
+);
+
 Address_FSM
 Address_Counter
 (
     .clk(inc_address), 
-    .reset(1), //
+    .reset(reset),
     .forward(forward),
     .play(play),
     .address(flash_mem_address)
@@ -277,13 +286,12 @@ FSM
 Audio_FSM
 (
     .clk(CLOCK_50), 
-    .reset(1),
+    .reset(reset),
     .play(play),
     .sync_clk(Sync_Clock_22kHz), 
     .flash_mem_read(flash_mem_read), 
     .flash_mem_readdatavalid(flash_mem_readdatavalid),
     .flash_mem_waitrequest(flash_mem_waitrequest),
-    .reset_address(reset_address), 
     .inc_address(inc_address),
     .lower(lower)
 );
@@ -378,6 +386,11 @@ always @(posedge CLK_50M) begin
         forward = 1;
     if (kbd_received_ascii_code == character_B)
         forward = 0;
+
+    if (kbd_received_ascii_code == character_R)
+        replay = 1;
+    else 
+        replay = 0;
 end
 //-----------------------------
 
