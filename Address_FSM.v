@@ -4,15 +4,18 @@ module Address_FSM (clk, reset, forward, play, address);
 
 	reg [22:0] address = 0;
 
+	parameter [22:0] min_address = 0;
+	parameter [22:0] max_address = 23'h7FFFF;
+
 	always @(posedge clk, negedge reset) begin
 		if (~reset) 
-			address <= 0;
+			address <= min_address;
 		else if (play) begin
 			if (forward)
-				if (address >= 23'h7FFFF) address <= 0; //restart song when end of file is reached
+				if (address >= max_address) address <= min_address; //restart song when end of file is reached
 				else address <= address + 1'b1;
 			else 
-				if (address <= 0) address <= 23'h7FFFF;
+				if (address <= min_address) address <= max_address;
 				else address <= address - 1'b1;
 		end
 	end

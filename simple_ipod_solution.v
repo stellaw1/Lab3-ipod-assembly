@@ -230,7 +230,7 @@ wire Sample_Clk_Signal;
 // Variables
 wire Clock_22kHz, Sync_Clock_22kHz;
 
-reg play = 0;
+reg play;
 reg forward = 1; 
 
 wire reset_address, inc_address, lower;
@@ -367,18 +367,18 @@ key2ascii kbd2ascii(
 .clk(conv_now_ignore_timing)
 );
 
-// my code ---
-always @(kbd_scan_code) begin
-    if (kbd_scan_code == 8'h24) //E
-        play = 1;
-    if (kbd_scan_code == 8'h23) // D
-        play = 0;
-    if (kbd_scan_code == 8'h2b) // F
+// play and forward flag DFF ---
+always @(posedge CLK_50M) begin
+    if (kbd_received_ascii_code == character_E)
+        play <= 1;
+    if (kbd_received_ascii_code == character_D)
+        play <= 0;
+    if (kbd_received_ascii_code == character_F)
         forward = 1;
-    if (kbd_scan_code == 8'h32) // B
+    if (kbd_received_ascii_code == character_B)
         forward = 0;
 end
-//------------
+//-----------------------------
 
 parameter scope_info_bytes = 16;
 parameter scope_info_bits_per_byte = 8;

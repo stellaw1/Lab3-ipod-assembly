@@ -38,7 +38,7 @@ module FSM (clk, reset, play, sync_clk, flash_mem_read, flash_mem_readdatavalid,
                 default: state <= INIT;
             endcase
         end
-    end 
+    end
 
     always @(*) begin
         reset_address = ~(state == INIT);
