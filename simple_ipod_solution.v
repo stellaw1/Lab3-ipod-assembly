@@ -264,7 +264,7 @@ Sync_Clock_Detector
 );
 
 Synchronizer
-Sync_Replay_Detector
+Replay_Signal_Detector
 (
     .async_clk(replay),
     .clk(CLOCK_50),
@@ -327,12 +327,24 @@ flash flash_inst (
 );
 
 
+//======================================================================================
+//
+// PacoBlaze LED code
+//
+//
 
-// assign Sample_Clk_Signal = Clock_1KHz;
-//Audio Generation Signal
-//Note that the audio needs signed data - so convert 1 bit to 8 bits signed
-// wire [7:0] audio_data = {~Sample_Clk_Signal,{7{Sample_Clk_Signal}}}; //generate signed sample audio signal
+wire [23:0] sseg; 
 
+picoblaze_template
+#(
+.clk_freq_in_hz(50000000)
+) 
+picoblaze_template_inst(
+    .led(LED[7:0]),
+    .clk(CLK_50M),
+    .input_data(audio_data),
+    .sseg(sseg)
+);
 
 
 //======================================================================================
@@ -383,14 +395,13 @@ always @(posedge CLK_50M) begin
     if (kbd_received_ascii_code == character_D)
         play <= 0;
     if (kbd_received_ascii_code == character_F)
-        forward = 1;
+        forward <= 1;
     if (kbd_received_ascii_code == character_B)
-        forward = 0;
-
+        forward <= 0;
+    
+    replay <= 0;
     if (kbd_received_ascii_code == character_R)
-        replay = 1;
-    else 
-        replay = 0;
+        replay <= 1;
 end
 //-----------------------------
 
