@@ -9,7 +9,10 @@ module Address_FSM (clk, reset, forward, play, address);
 
 	always @(posedge clk, posedge reset) begin
 		if (reset) 
-			address <= min_address;
+			if (forward)
+				address <= min_address;
+			else
+				address <= max_address;
 		else if (play) begin
 			if (forward)
 				if (address >= max_address) address <= min_address; //restart song when end of file is reached

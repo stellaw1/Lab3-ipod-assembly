@@ -126,8 +126,10 @@ output                      DRAM_WE_N;
 // Input and output declarations
 logic CLK_50M;
 logic  [7:0] LED;
+logic  LED0;
 assign CLK_50M =  CLOCK_50;
-assign LEDR[7:0] = LED[7:0];
+assign LEDR[9:2] = LED[7:0];
+assign LEDR[0] = LED0;
 
 //Character definitions
 
@@ -235,7 +237,7 @@ reg forward = 1;
 reg replay = 0;
 reg [31:0] div_clk_count = 32'h266;
 
-wire reset, inc_address, lower;
+wire reset, inc_address, lower, interrupt;
 wire [7:0] audio_data;
 
 wire            flash_mem_read;
@@ -293,7 +295,8 @@ Audio_FSM
     .flash_mem_readdatavalid(flash_mem_readdatavalid),
     .flash_mem_waitrequest(flash_mem_waitrequest),
     .inc_address(inc_address),
-    .lower(lower)
+    .lower(lower),
+    .interrupt(interrupt)
 );
 
 
@@ -341,6 +344,8 @@ picoblaze_template
 ) 
 picoblaze_template_inst(
     .led(LED[7:0]),
+    .led0(LED0),
+    .interrupt_event(interrupt),
     .clk(CLK_50M),
     .input_data(audio_data),
     .sseg(sseg)

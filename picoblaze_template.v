@@ -6,13 +6,12 @@ picoblaze_template
 #(
 parameter clk_freq_in_hz = 25000000
 ) (
-				output reg[7:0] led,
-				input clk,
-				input [7:0] input_data,
-			   output wire [23:0] sseg
-
-			     );
-
+  output reg[7:0] led,
+  output reg led0,
+  input clk, interrupt_event, 
+  input [7:0] input_data,
+  output wire [23:0] sseg
+);
 
   
 //--
@@ -32,11 +31,6 @@ reg  interrupt;
 wire  interrupt_ack;
 wire  kcpsm3_reset;
 
-//--
-//-- Signals used to generate interrupt 
-//--
-reg[26:0] int_count;
-reg event_1hz;
 
 //-- Signals for LCD operation
 //--
@@ -58,20 +52,20 @@ pacoblaze3 led_8seg_kcpsm
                      .reset(kcpsm3_reset),
                        .clk(clk));
 
- wire [19:0] raw_instruction;
-	
-	pacoblaze_instruction_memory 
-	pacoblaze_instruction_memory_inst(
-     	.addr(address),
-	    .outdata(raw_instruction)
-	);
-	
-	always @ (posedge clk)
-	begin
-	      instruction <= raw_instruction[17:0];
-	end
+wire [19:0] raw_instruction;
 
-    assign kcpsm3_reset = 0;                       
+pacoblaze_instruction_memory 
+pacoblaze_instruction_memory_inst(
+  .addr(address),
+  .outdata(raw_instruction)
+);
+
+always @ (posedge clk)
+begin
+  instruction <= raw_instruction[17:0];
+end
+
+assign kcpsm3_reset = 0;                       
   
 //  ----------------------------------------------------------------------------------------------------------------------------------
 //  -- Interrupt 
@@ -87,32 +81,18 @@ pacoblaze3 led_8seg_kcpsm
 
 // Note that because we are using clock enable we DO NOT need to synchronize with clk
 
-  always @ (posedge clk)
-  begin
-      //--divide 50MHz by 50,000,000 to form 1Hz pulses
-      if (int_count==(clk_freq_in_hz-1)) //clock enable
-		begin
-         int_count <= 0;
-         event_1hz <= 1;
-      end else
-		begin
-         int_count <= int_count + 1;
-         event_1hz <= 0;
-      end
- end
-
- always @ (posedge clk or posedge interrupt_ack)  //FF with clock "clk" and reset "interrupt_ack"
- begin
-      if (interrupt_ack) //if we get reset, reset interrupt in order to wait for next clock.
-            interrupt <= 0;
-      else
-		begin 
-		      if (event_1hz)   //clock enable
-      		      interrupt <= 1;
-          		else
-		            interrupt <= interrupt;
-      end
- end
+always @ (posedge clk or posedge interrupt_ack)  //FF with clock "clk" and reset "interrupt_ack"
+begin
+  if (interrupt_ack) //if we get reset, reset interrupt in order to wait for next clock.
+    interrupt <= 0;
+  else
+begin 
+  if (interrupt_event)   //clock enable
+    interrupt <= 1;
+  else
+    interrupt <= interrupt;
+  end
+end
 
 //  --
 //  ----------------------------------------------------------------------------------------------------------------------------------
@@ -123,12 +103,12 @@ pacoblaze3 led_8seg_kcpsm
 //  -- The inputs connect via a pipelined multiplexer
 //  --
 
- always @ (posedge clk)
- begin
-    case (port_id[7:0])
-        8'h0:    in_port <= input_data;
-        default: in_port <= 8'bx;
-    endcase
+always @ (posedge clk)
+begin
+  case (port_id[7:0])
+    8'h0:    in_port <= input_data;
+    default: in_port <= 8'bx;
+  endcase
 end
    
 //
@@ -140,25 +120,29 @@ end
 //  -- adding the output registers to the processor
 //  --
 //   
-  always @ (posedge clk)
-  begin
+always @ (posedge clk)
+begin
 
-        //port 80 hex 
-        if (write_strobe & port_id[7])  //clock enable 
-          led <= out_port;
+  //port 80 hex 
+  if (write_strobe & port_id[7])  //clock enable 
+    led <= out_port;
 
-        //port 40 hex 
-        if (write_strobe & port_id[6])  //clock enable 
-          sseg[7:0] <= out_port;
-			      
-		  //port 20 hex 
-		  if (write_strobe & port_id[5])  //clock enable 
-          sseg[15:8] <= out_port;
-			      
-		  //port 10 hex 			
-        if (write_strobe & port_id[4])  //clock enable 
-          sseg[23:16] <= out_port;
-			      
-  end
+  //port 40 hex 
+  if (write_strobe & port_id[6])  //clock enable 
+    sseg[7:0] <= out_port;
+      
+  //port 20 hex 
+  if (write_strobe & port_id[5])  //clock enable 
+    sseg[15:8] <= out_port;
+      
+  //port 10 hex 			
+  if (write_strobe & port_id[4])  //clock enable 
+    sseg[23:16] <= out_port;
+  
+  //port 8 hex 			
+  if (write_strobe & port_id[3])  //clock enable 
+    led0 <= out_port;
+          
+end
 
 endmodule
