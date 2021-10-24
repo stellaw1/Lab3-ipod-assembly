@@ -344,25 +344,24 @@ update_seven_segments : output s8, SSEG_PORT0
 
      check_counter: FETCH s0, DATA_counter              ;read current counter value
                     COMPARE s0, FF                      ;if counter at 255
-                    JUMP Z, display_avg
+                    JUMP Z, calc_avg
 
 
  increment_counter: ADD s0, 01
                     STORE s0, DATA_counter
        
-       get_abs_val: ;if s0 AND 1000 0000 then negative
-                    TEST s0, 80
-                    JUMP Z, add_to_cum_sum ;positive
+       get_abs_val: INPUT s0, DATA_IN_PORT              ;grab 8-bit audio_data
+                    COMPARE s0, 80                      ;if s0 AND 1000 0000 then negative
+                    JUMP C, add_to_cum_sum              ;positive
+                    JUMP NZ, add_to_cum_sum             ;positive
 
          flip_sign: XOR s0, FF
                     ADD s0, 01
 
-    add_to_cum_sum: INPUT s0,DATA_IN_PORT               ;grab 8-bit audio_data
-                    FETCH s1, DATA_cum_sum_bot          ;grab bottom 8 bits of cum sum
+    add_to_cum_sum: FETCH s1, DATA_cum_sum_bot          ;grab bottom 8 bits of cum sum
                     ADD s0, s1                          ;add audio_data to cum sum with carry bit
                     STORE s0, DATA_cum_sum_bot
                     JUMP NC, ret                        
-                    AND s0, s0                          ;reset carry
     
          add_carry: FETCH s0, DATA_cum_sum_top          ;add 1 to top half of cum sum
                     ADD s0, 01
@@ -370,11 +369,30 @@ update_seven_segments : output s8, SSEG_PORT0
                     JUMP ret
 
 
-       display_avg: FETCH s0, DATA_cum_sum_top          ;divide top 8 bits of cum sum which is the average 
+          calc_avg: FETCH s1, DATA_cum_sum_top          ;divide top 8 bits of cum sum which is the average 
                     
-                    ;TODO get left to right fill value 
+           get_msb: LOAD s0, 80                         ;s0: msb
+                    COMPARE s0, s1
+                    JUMP C, get_led_pattern             ;DATA_cum_sum_top > msb
+                    JUMP Z, get_led_pattern             ;DATA_cum_sum_top == msb
+            
+           dec_msb: SR0 s0
+                    COMPARE s0, 00
+                    JUMP Z, get_led_pattern             ;msb == 0
+
+                    COMPARE s0, s1
+                    JUMP C, get_led_pattern             ;DATA_cum_sum_top > msb
+                    JUMP Z, get_led_pattern             ;DATA_cum_sum_top == msb
+                    JUMP dec_msb                        ;loop
                     
-                    OUTPUT s0, LED_port                 ;display counter value on LEDs
+   get_led_pattern: LOAD s1, 00
+repeat_led_pattern: COMPARE s0, 00                      ;msb == 0
+                    JUMP Z, display_avg
+                    SR1 s1
+                    SR0 s0
+                    JUMP repeat_led_pattern
+                    
+       display_avg: OUTPUT s1, LED_port                 ;display counter value on LEDs
 
              reset: LOAD s0, 00
                     STORE s0, DATA_counter              ;reset counter to 0
