@@ -182,7 +182,7 @@
 
      display_led0:  STORE s0, LED_pattern               ;store new counter value
                     OUTPUT s0, LED0_port                 ;display counter value on LEDs
-                    CALL main_program                   ;repeat 1 Hz cycle
+                    JUMP main_program                   ;repeat 1 Hz cycle
                     
 	              
     check_switches: INPUT s0,DATA_IN_PORT     		        ;get status of switches
@@ -351,9 +351,8 @@ update_seven_segments : output s8, SSEG_PORT0
                     STORE s0, DATA_counter
        
        get_abs_val: INPUT s0, DATA_IN_PORT              ;grab 8-bit audio_data
-                    COMPARE s0, 80                      ;if s0 AND 1000 0000 then negative
-                    JUMP C, add_to_cum_sum              ;positive
-                    JUMP NZ, add_to_cum_sum             ;positive
+                    TEST s0, 80                         ;if s0 AND 1000 0000 then negative
+                    JUMP NC, add_to_cum_sum             ;carry == negative, no carry == positive
 
          flip_sign: XOR s0, FF
                     ADD s0, 01

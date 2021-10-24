@@ -295,8 +295,8 @@ Audio_FSM
     .flash_mem_readdatavalid(flash_mem_readdatavalid),
     .flash_mem_waitrequest(flash_mem_waitrequest),
     .inc_address(inc_address),
-    .lower(lower),
-    .interrupt(interrupt)
+    .lower(lower)
+    // .interrupt(interrupt)
 );
 
 
@@ -345,7 +345,7 @@ picoblaze_template
 picoblaze_template_inst(
     .led(LED[7:0]),
     .led0(LED0),
-    .interrupt_event(interrupt),
+    .interrupt_event(Sync_Clock_22kHz),
     .clk(CLK_50M),
     .input_data(audio_data),
     .sseg(sseg)

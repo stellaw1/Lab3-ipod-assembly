@@ -1,20 +1,18 @@
-module FSM (clk, reset, play, sync_clk, flash_mem_read, flash_mem_readdatavalid, flash_mem_waitrequest, inc_address, lower, interrupt);
+module FSM (clk, reset, play, sync_clk, flash_mem_read, flash_mem_readdatavalid, flash_mem_waitrequest, inc_address, lower);
     input clk, reset, play, sync_clk, flash_mem_readdatavalid, flash_mem_waitrequest;
 
-    output flash_mem_read, inc_address, lower, interrupt;
+    output flash_mem_read, inc_address, lower;
 
-    reg [7:0] state;
+    reg [2:0] state; //TODO ensure glitch free
 
-    parameter [7:0] INIT =      8'b0000_0000;
-    parameter [7:0] INC =       8'b1000_0001;
-    parameter [7:0] READ =      8'b0100_0010;
-    parameter [7:0] WAIT =      8'b0000_0011;
-    parameter [7:0] PLAYL =     8'b0010_0100;
-    parameter [7:0] PAUSEL =    8'b0000_0101;
-    parameter [7:0] INTL =      8'b0001_0110;
-    parameter [7:0] PLAYR =     8'b0000_0111;
-    parameter [7:0] PAUSER =    8'b0000_1000;
-    parameter [7:0] INTR =      8'b0001_1001;
+    parameter [2:0] INIT = 3'b000;
+    parameter [2:0] INC = 3'b001;
+    parameter [2:0] READ = 3'b011;
+    parameter [2:0] WAIT = 3'b010;
+    parameter [2:0] PLAYL = 3'b110;
+    parameter [2:0] PAUSEL = 3'b100;
+    parameter [2:0] PLAYR = 3'b101;
+    parameter [2:0] PAUSER = 3'b111;
 
     always @(posedge clk, posedge reset) begin
         if (reset) state <= INIT;
@@ -25,15 +23,13 @@ module FSM (clk, reset, play, sync_clk, flash_mem_read, flash_mem_readdatavalid,
                 INC: state <= READ;
                 READ: if (~flash_mem_waitrequest) state <= WAIT;
                     else state <= READ;
-                WAIT: if (flash_mem_readdatavalid) state <= INTL;
+                WAIT: if (flash_mem_readdatavalid) state <= PLAYL;
                     else state <= WAIT;
-                INTL: state <= PLAYL;
                 PLAYL: if (~play) state <= PAUSEL;
-                    else if (sync_clk) state <= INTR;
+                    else if (sync_clk) state <= PLAYR;
                     else state <= PLAYL;
                 PAUSEL: if (play) state <= PLAYR;
                     else state <= PAUSEL;
-                INTR: state<= PLAYR;
                 PLAYR: if (~play) state <= PAUSER;
                     else if (sync_clk) state <= INC;
                     else state <= PLAYR;
@@ -45,9 +41,8 @@ module FSM (clk, reset, play, sync_clk, flash_mem_read, flash_mem_readdatavalid,
     end
 
     always @(*) begin
-        inc_address = state[7];
-        flash_mem_read = state[6];
-        lower = state[5];
-        interrupt = state[4];
+        inc_address = (state == INC);
+        flash_mem_read = (state == READ);
+        lower = (state == PLAYL);
     end
 endmodule
